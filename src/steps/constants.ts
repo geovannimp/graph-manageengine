@@ -3,78 +3,59 @@ import {
   StepEntityMetadata,
   StepRelationshipMetadata,
 } from '@jupiterone/integration-sdk-core';
+import { generateRelationshipMetadata } from '../helpers';
+
+const INTEGRATION_NAME = 'manageengine';
 
 export const Steps = {
-  ACCOUNT: 'fetch-account',
-  USERS: 'fetch-users',
-  GROUPS: 'fetch-groups',
-  GROUP_USER_RELATIONSHIPS: 'build-user-group-relationships',
-};
+  FETCH_REMOTE_OFFICES: 'fetch-remote-offices',
+  FETCH_COMPUTERS: 'fetch-computers',
+  FETCH_SOFTWARE: 'fetch-software',
+  FETCH_PATCHES: 'fetch-patches',
+} satisfies Record<string, `fetch-${string}` | `relate-${string}-to-${string}`>;
 
-export const Entities: Record<
-  'ACCOUNT' | 'GROUP' | 'USER',
-  StepEntityMetadata
-> = {
-  ACCOUNT: {
-    resourceName: 'Account',
-    _type: 'acme_account',
-    _class: ['Account'],
-    schema: {
-      properties: {
-        mfaEnabled: { type: 'boolean' },
-        manager: { type: 'string' },
-      },
-      required: ['mfaEnabled', 'manager'],
-    },
+export const Entities = {
+  COMPUTER: {
+    resourceName: 'Computer',
+    _type: `${INTEGRATION_NAME}_computer`,
+    _class: ['Device'],
   },
-  GROUP: {
-    resourceName: 'UserGroup',
-    _type: 'acme_group',
-    _class: ['UserGroup'],
-    schema: {
-      properties: {
-        email: { type: 'string' },
-        logoLink: { type: 'string' },
-      },
-      required: ['email', 'logoLink'],
-    },
+  REMOTE_OFFICE: {
+    resourceName: 'RemoteOffice',
+    _type: `${INTEGRATION_NAME}_remote_office`,
+    _class: ['Group'],
   },
-  USER: {
-    resourceName: 'User',
-    _type: 'acme_user',
-    _class: ['User'],
-    schema: {
-      properties: {
-        username: { type: 'string' },
-        email: { type: 'string' },
-        active: { type: 'boolean' },
-        firstName: { type: 'string' },
-      },
-      required: ['username', 'email', 'active', 'firstName'],
-    },
+  SOFTWARE: {
+    resourceName: 'Software',
+    _type: `${INTEGRATION_NAME}_software`,
+    _class: ['Application'],
   },
-};
+  PATCH: {
+    resourceName: 'Patch',
+    _type: `${INTEGRATION_NAME}_patch`,
+    _class: ['Finding'],
+  },
+} satisfies Record<string, StepEntityMetadata>;
 
-export const Relationships: Record<
-  'ACCOUNT_HAS_USER' | 'ACCOUNT_HAS_GROUP' | 'GROUP_HAS_USER',
-  StepRelationshipMetadata
-> = {
-  ACCOUNT_HAS_USER: {
-    _type: 'acme_account_has_user',
-    sourceType: Entities.ACCOUNT._type,
+export const Relationships = {
+  COMPUTER_INSTALLED_SOFTWARE: generateRelationshipMetadata({
+    from: Entities.COMPUTER,
+    _class: RelationshipClass.INSTALLED,
+    to: Entities.SOFTWARE,
+  }),
+  REMOTE_OFFICE_HAS_COMPUTER: generateRelationshipMetadata({
+    from: Entities.REMOTE_OFFICE,
     _class: RelationshipClass.HAS,
-    targetType: Entities.USER._type,
-  },
-  ACCOUNT_HAS_GROUP: {
-    _type: 'acme_account_has_group',
-    sourceType: Entities.ACCOUNT._type,
+    to: Entities.COMPUTER,
+  }),
+  COMPUTER_HAS_PATCH: generateRelationshipMetadata({
+    from: Entities.COMPUTER,
     _class: RelationshipClass.HAS,
-    targetType: Entities.GROUP._type,
-  },
-  GROUP_HAS_USER: {
-    _type: 'acme_group_has_user',
-    sourceType: Entities.GROUP._type,
-    _class: RelationshipClass.HAS,
-    targetType: Entities.USER._type,
-  },
-};
+    to: Entities.PATCH,
+  }),
+  REMOTE_OFFICE_ENFORCES_PATCH: generateRelationshipMetadata({
+    from: Entities.REMOTE_OFFICE,
+    _class: RelationshipClass.ENFORCES,
+    to: Entities.PATCH,
+  }),
+} satisfies Record<string, StepRelationshipMetadata>;
